@@ -12,7 +12,7 @@ VITE_API_BASE_URL=https://parkmate-backend-7qmh.onrender.com/api
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  "http://parkmate-i1ey.onrender.com/ap";
+  "http://127.0.0.1:5000/api";
 
 const API = axios.create({
   baseURL: API_BASE_URL,
@@ -100,29 +100,17 @@ export const getPaymentStatus = (id) => API.get(`/payments/${id}`);
 
 
 // ─────────────────────────────────────────
-// Auth APIs
+// Magic Link Auth APIs
 // ─────────────────────────────────────────
+export const sendMagicLink = (data) =>
+  API.post("/auth/send-magic-link", data);
+
+export const verifyMagicLink = (token) =>
+  API.get("/auth/verify-magic-link", { params: { token } });
+
+// Keeping standard login for admin/legacy
 export const loginUser = (credentials) =>
   API.post("/auth/login", credentials);
-
-export const registerUser = (data) =>
-  API.post("/auth/register", data);
-
-export const sendSignupOtp = (data) =>
-  API.post("/auth/send-signup-otp", data);
-
-
-// ─────────────────────────────────────────
-// Forgot Password APIs
-// ─────────────────────────────────────────
-export const forgotPassword = (data) =>
-  API.post("/forgot-password", data);
-
-export const verifyOtp = (data) =>
-  API.post("/verify-otp", data);
-
-export const resetPassword = (data) =>
-  API.post("/reset-password", data);
 
 
 // ─────────────────────────────────────────

@@ -11,9 +11,9 @@ import Payment from './pages/Payment';
 import MyBookings from './pages/MyBookings';
 import Contact from './pages/Contact';
 import Signup from './pages/Signup';
-import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import AdminPanel from './pages/AdminPanel';
+import MagicLogin from './pages/MagicLogin';
 
 /* ───────────────────────────────────────────────────────────── */
 /* Inner component — needs access to useNavigate (inside Router) */
@@ -106,7 +106,7 @@ function AppInner() {
         <Route path="/bookings" element={<MyBookings />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/magic-login" element={<MagicLogin />} />
         <Route path="/dashboard" element={<Dashboard />} />
 
         {/* ── Admin route — redirect non-admins to login ── */}
