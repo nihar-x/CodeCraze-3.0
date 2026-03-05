@@ -115,11 +115,18 @@
   .card {
     background: #fff;
     border-radius: 16px;
-    border: 1px solid #e9e6f7;
+    border: 1px solid #e2e8f0;
     box-shadow: 0 1px 4px rgba(100, 100, 120, 0.06);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     top: 0;
+  }
+
+  .card-static {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   }
 
   .card:hover {
@@ -137,7 +144,7 @@
   .stat-card {
     background: #fff;
     border-radius: 14px;
-    border: 1px solid #e9e6f7;
+    border: 1px solid #e2e8f0;
     padding: 20px 24px;
     display: flex;
     align-items: center;
@@ -156,13 +163,14 @@
     width: 100%;
     padding: 10px 14px;
     border-radius: 10px;
-    border: 1.5px solid #e5e7eb;
+    border: 1px solid #d1d5db; /* slightly darker for visibility */
     background: #fff;
     color: #111827;
     font-size: 0.875rem;
     font-weight: 500;
     transition: all 0.15s ease;
     outline: none;
+    appearance: none;
     -webkit-appearance: none;
   }
 
@@ -177,7 +185,7 @@
   }
 
   .input-field:hover:not(:focus) {
-    border-color: #d1d5db;
+    border-color: #9ca3af;
   }
 
   /* Padded left (icon) variant */

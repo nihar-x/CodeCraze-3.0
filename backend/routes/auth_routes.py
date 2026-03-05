@@ -10,6 +10,39 @@ otp_store = {}
 
 
 # ───────────────── REGISTER / SIGNUP ─────────────────
+@auth_bp.route("/auth/send-signup-otp", methods=["POST"])
+def send_signup_otp():
+    data = request.get_json()
+    email = data.get("email", "").strip().lower()
+
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
+    existing = get_user_by_email(email)
+    if existing:
+        return jsonify({"error": "An account with this email already exists"}), 409
+
+    # Generate OTP
+    otp = str(random.randint(100000, 999999))
+    otp_store[email] = otp
+
+    try:
+        msg = Message(
+            subject="ParkEasy Registration OTP",
+            sender=current_app.config["MAIL_USERNAME"],
+            recipients=[email]
+        )
+        msg.body = f"Hello,\n\nYour OTP for ParkEasy registration is: {otp}\n\nRegards,\nParkEasy Team"
+        mail = current_app.extensions["mail"]
+        mail.send(msg)
+        print(f"Signup OTP sent to {email}: {otp}")
+    except Exception as e:
+        print("Email sending error:", e)
+        return jsonify({"error": "Failed to send OTP email"}), 500
+
+    return jsonify({"message": "OTP sent to email"}), 200
+
+
 @auth_bp.route("/auth/register", methods=["POST"])
 def register():
     data = request.get_json()
@@ -17,9 +50,13 @@ def register():
     name = data.get("name", "").strip()
     email = data.get("email", "").strip().lower()
     password = data.get("password", "")
+    otp = data.get("otp", "")
 
-    if not name or not email or not password:
-        return jsonify({"error": "Name, email, and password are required"}), 400
+    if not name or not email or not password or not otp:
+        return jsonify({"error": "All fields including OTP are required"}), 400
+
+    if otp_store.get(email) != otp:
+        return jsonify({"error": "Invalid or expired OTP"}), 401
 
     if len(password) < 6:
         return jsonify({"error": "Password must be at least 6 characters"}), 400
@@ -30,6 +67,7 @@ def register():
 
     try:
         user_id = create_user(name, email, password)
+        otp_store.pop(email, None)  # Clean up
 
         return jsonify({
             "message": "Account created successfully",

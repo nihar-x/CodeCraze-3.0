@@ -94,6 +94,9 @@ export const loginUser = (credentials) =>
 export const registerUser = (data) =>
   API.post("/auth/register", data);
 
+export const sendSignupOtp = (data) =>
+  API.post("/auth/send-signup-otp", data);
+
 
 // ─────────────────────────────────────────
 // Forgot Password APIs

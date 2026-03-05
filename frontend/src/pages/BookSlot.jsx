@@ -311,7 +311,6 @@ const BookSlot = () => {
                 </div>
               </div>
 
-            
             </div>
 
             {/* Divider */}
