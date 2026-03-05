@@ -7,8 +7,8 @@ const Payment = () => {
   const [booking, setBooking] = useState(null);
 
   useEffect(() => {
-    const s = localStorage.getItem('parkeasy_selected_slot');
-    const b = localStorage.getItem('parkeasy_booking');
+    const s = localStorage.getItem('parkmate_selected_slot');
+    const b = localStorage.getItem('parkmate_booking');
     if (s) setSlot(JSON.parse(s));
     if (b) setBooking(JSON.parse(b));
   }, []);

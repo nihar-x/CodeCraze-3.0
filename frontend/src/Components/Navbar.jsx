@@ -11,7 +11,7 @@ const navLinks = [
   { to: '/contact', label: 'Contact' },
 ];
 
-const ADMIN_EMAILS = ['admin@parkeasy.com', 'admin@example.com', 'admin@test.com'];
+const ADMIN_EMAILS = ['admin@parkmate.com', 'admin@example.com', 'admin@test.com'];
 
 const Navbar = ({ onLoginClick, user, onLogout }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -29,8 +29,8 @@ const Navbar = ({ onLoginClick, user, onLogout }) => {
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
-          ? 'bg-white/98 backdrop-blur-xl border-b border-gray-200/80 shadow-sm'
-          : 'bg-white/90 backdrop-blur-md border-b border-transparent'
+        ? 'bg-white/98 backdrop-blur-xl border-b border-gray-200/80 shadow-sm'
+        : 'bg-white/90 backdrop-blur-md border-b border-transparent'
         }`}
     >
       <div className="max-w-6xl mx-auto px-5 sm:px-8">

@@ -25,7 +25,7 @@ function AppInner() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [user, setUser] = useState(() => {
     try {
-      const stored = localStorage.getItem('parkeasy_user');
+      const stored = localStorage.getItem('parkmate_user');
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
@@ -43,7 +43,7 @@ function AppInner() {
   useEffect(() => {
     const syncUser = () => {
       try {
-        const stored = localStorage.getItem('parkeasy_user');
+        const stored = localStorage.getItem('parkmate_user');
         setUser(stored ? JSON.parse(stored) : null);
       } catch {
         setUser(null);
@@ -73,7 +73,7 @@ function AppInner() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('parkeasy_user');
+    localStorage.removeItem('parkmate_user');
     setUser(null);
     navigate('/');
   };

@@ -28,11 +28,11 @@ def send_signup_otp():
 
     try:
         msg = Message(
-            subject="ParkEasy Registration OTP",
+            subject="ParkMate Registration OTP",
             sender=current_app.config["MAIL_USERNAME"],
             recipients=[email]
         )
-        msg.body = f"Hello,\n\nYour OTP for ParkEasy registration is: {otp}\n\nRegards,\nParkEasy Team"
+        msg.body = f"Hello,\n\nYour OTP for ParkMate registration is: {otp}\n\nRegards,\nParkMate Team"
         mail = current_app.extensions["mail"]
         mail.send(msg)
         print(f"Signup OTP sent to {email}: {otp}")
@@ -144,7 +144,7 @@ def forgot_password():
 
     try:
         msg = Message(
-            subject="ParkEasy Password Reset OTP",
+            subject="ParkMate Password Reset OTP",
             sender=current_app.config["MAIL_USERNAME"],
             recipients=[email]
         )
@@ -152,7 +152,7 @@ def forgot_password():
         msg.body = f"""
 Hello,
 
-Your OTP for resetting your ParkEasy password is:
+Your OTP for resetting your ParkMate password is:
 
 {otp}
 
@@ -161,7 +161,7 @@ This OTP is valid for 5 minutes.
 If you did not request this password reset, please ignore this email.
 
 Regards,
-ParkEasy Team
+ParkMate Team
 """
 
         mail = current_app.extensions["mail"]

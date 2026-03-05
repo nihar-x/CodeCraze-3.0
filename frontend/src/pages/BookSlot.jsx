@@ -61,7 +61,7 @@ const BookSlot = () => {
 
   /* ── Check for pre-selected slot on mount ── */
   useEffect(() => {
-    const stored = localStorage.getItem('parkeasy_preselected_slot');
+    const stored = localStorage.getItem('parkmate_preselected_slot');
     if (stored) {
       try {
         const slot = JSON.parse(stored);
@@ -73,7 +73,7 @@ const BookSlot = () => {
           slotId: slot.slotId || '',
         }));
         // Clear it after reading
-        localStorage.removeItem('parkeasy_preselected_slot');
+        localStorage.removeItem('parkmate_preselected_slot');
       } catch {
         // ignore
       }
@@ -103,9 +103,9 @@ const BookSlot = () => {
     };
 
     // Store in localStorage for downstream (payment, etc.)
-    localStorage.setItem('parkeasy_booking', JSON.stringify(bookingData));
+    localStorage.setItem('parkmate_booking', JSON.stringify(bookingData));
     if (preselected) {
-      localStorage.setItem('parkeasy_selected_slot', JSON.stringify(preselected));
+      localStorage.setItem('parkmate_selected_slot', JSON.stringify(preselected));
     }
 
     // Navigate to payment

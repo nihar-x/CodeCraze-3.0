@@ -143,7 +143,7 @@ const AdminPanel = ({ user, onLogout }) => {
               <FaShieldAlt className="text-white text-sm" />
             </div>
             <div>
-              <span className="text-[16px] font-extrabold text-gray-900 tracking-tight">ParkEasy</span>
+              <span className="text-[16px] font-extrabold text-gray-900 tracking-tight">ParkMate</span>
               <span className="ml-2 text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">Admin</span>
             </div>
           </div>

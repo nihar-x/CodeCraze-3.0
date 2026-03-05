@@ -7,7 +7,7 @@ const SlotCard = ({ slot }) => {
   const isAvailable = status === 'available';
 
   const handleBook = () => {
-    localStorage.setItem('parkeasy_selected_slot', JSON.stringify(slot));
+    localStorage.setItem('parkmate_selected_slot', JSON.stringify(slot));
     navigate('/payment');
   };
 

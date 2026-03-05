@@ -18,7 +18,7 @@ const MyBookings = () => {
   const [loading, setLoading]   = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem('parkeasy_user');
+    const stored = localStorage.getItem('parkmate_user');
     if (stored) {
       const parsed = JSON.parse(stored);
       setUser(parsed);

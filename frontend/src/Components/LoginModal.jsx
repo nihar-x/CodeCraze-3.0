@@ -6,21 +6,21 @@ import {
 } from 'react-icons/fa';
 import { loginUser } from '../services/api';
 
-const ADMIN_EMAILS = ['admin@parkeasy.com', 'admin@example.com', 'admin@test.com'];
+const ADMIN_EMAILS = ['admin@parkmate.com', 'admin@example.com', 'admin@test.com'];
 
 /* ── Hard-coded admin credentials (demo) ── */
 const ADMIN_CREDENTIALS = [
-  { email: 'admin@parkeasy.com', password: 'admin123' },
-  { email: 'admin@example.com',  password: 'admin123' },
-  { email: 'admin@test.com',     password: 'admin'    },
+  { email: 'admin@parkmate.com', password: 'admin123' },
+  { email: 'admin@example.com', password: 'admin123' },
+  { email: 'admin@test.com', password: 'admin' },
 ];
 
 const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
-  const [mode, setMode]           = useState('user');   // 'user' | 'admin'
-  const [form, setForm]           = useState({ email: '', password: '' });
-  const [showPass, setShowPass]   = useState(false);
-  const [loading, setLoading]     = useState(false);
-  const [error, setError]         = useState('');
+  const [mode, setMode] = useState('user');   // 'user' | 'admin'
+  const [form, setForm] = useState({ email: '', password: '' });
+  const [showPass, setShowPass] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
@@ -51,7 +51,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
         if (!match) throw new Error('Invalid admin credentials.');
 
         const userData = { email: match.email, name: 'Admin', role: 'admin' };
-        localStorage.setItem('parkeasy_user', JSON.stringify(userData));
+        localStorage.setItem('parkmate_user', JSON.stringify(userData));
         window.dispatchEvent(new CustomEvent('userLoggedIn'));
         if (onLoginSuccess) onLoginSuccess(userData, 'admin');
         else onClose();
@@ -59,12 +59,12 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
         /* ── User login: call API ── */
         const res = await loginUser({ email: form.email, password: form.password });
         // Merge to ensure email is always present even if backend omits it
-        const userData = { email: form.email, role: 'user', ...( res.user || { name: form.email.split('@')[0] }) };
+        const userData = { email: form.email, role: 'user', ...(res.user || { name: form.email.split('@')[0] }) };
         // Make sure admin emails aren't sneaking in via user tab
         if (ADMIN_EMAILS.includes(form.email.toLowerCase())) {
           throw new Error('Use the Admin tab to login as admin.');
         }
-        localStorage.setItem('parkeasy_user', JSON.stringify(userData));
+        localStorage.setItem('parkmate_user', JSON.stringify(userData));
         window.dispatchEvent(new CustomEvent('userLoggedIn'));
         if (onLoginSuccess) onLoginSuccess(userData, 'user');
         else onClose();
@@ -113,11 +113,10 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
               type="button"
               id="login-tab-user"
               onClick={() => resetForm('user')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[13px] font-semibold transition-all duration-200 ${
-                !isAdmin
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[13px] font-semibold transition-all duration-200 ${!isAdmin
                   ? 'bg-white text-violet-700 shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               <FaUser className="text-[11px]" />
               User
@@ -126,11 +125,10 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
               type="button"
               id="login-tab-admin"
               onClick={() => resetForm('admin')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[13px] font-semibold transition-all duration-200 ${
-                isAdmin
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[13px] font-semibold transition-all duration-200 ${isAdmin
                   ? 'bg-white text-indigo-800 shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               <FaShieldAlt className="text-[11px]" />
               Admin
@@ -140,9 +138,8 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
           {/* Logo + Title */}
           <div className="text-center mb-6">
             <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 text-xl shadow-sm transition-all duration-300 ${
-                isAdmin ? 'bg-indigo-900' : 'icon-purple'
-              }`}
+              className={`w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 text-xl shadow-sm transition-all duration-300 ${isAdmin ? 'bg-indigo-900' : 'icon-purple'
+                }`}
             >
               {isAdmin ? '🛡️' : '🚗'}
             </div>
@@ -167,7 +164,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
           {isAdmin && (
             <div className="mb-4 px-3.5 py-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 text-[11px]">
               <strong>Demo credentials:</strong><br />
-              Email: <span className="font-mono">admin@parkeasy.com</span><br />
+              Email: <span className="font-mono">admin@parkmate.com</span><br />
               Password: <span className="font-mono">admin123</span>
             </div>
           )}
@@ -184,7 +181,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
                   name="email"
                   value={form.email}
                   onChange={handleChange}
-                  placeholder={isAdmin ? 'admin@parkeasy.com' : 'you@example.com'}
+                  placeholder={isAdmin ? 'admin@parkmate.com' : 'you@example.com'}
                   required
                   style={isAdmin ? { '--tw-ring-color': '#4338ca' } : {}}
                   className={`input-field input-field-icon ${isAdmin ? 'focus:border-indigo-500' : ''}`}
@@ -238,11 +235,10 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
               type="submit"
               disabled={loading}
               id="login-submit"
-              className={`w-full py-3.5 text-[14px] rounded-xl font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-200 ${
-                isAdmin
+              className={`w-full py-3.5 text-[14px] rounded-xl font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-200 ${isAdmin
                   ? 'bg-gradient-to-r from-indigo-900 to-indigo-700 hover:from-indigo-800 hover:to-indigo-600 shadow-md hover:shadow-indigo-300/40 hover:-translate-y-[1px]'
                   : 'btn-primary'
-              }`}
+                }`}
             >
               {loading ? (
                 <>
@@ -252,7 +248,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
               ) : (
                 <>
                   {isAdmin ? <FaShieldAlt className="text-[12px]" /> : null}
-                  {isAdmin ? 'Access Admin Panel' : 'Login to ParkEasy'}
+                  {isAdmin ? 'Access Admin Panel' : 'Login to ParkMate'}
                 </>
               )}
             </button>

@@ -89,7 +89,7 @@ const Signup = () => {
       });
       // Store user object
       const newUser = { email: form.email, name: form.name, role: 'user', ...(res.user || {}) };
-      localStorage.setItem('parkeasy_user', JSON.stringify(newUser));
+      localStorage.setItem('parkmate_user', JSON.stringify(newUser));
       window.dispatchEvent(new CustomEvent('userLoggedIn'));
       setSuccess(true);
       setTimeout(() => navigate('/dashboard'), 1400);
@@ -192,7 +192,7 @@ const Signup = () => {
               {success ? (
                 <div className="flex flex-col items-center justify-center py-10 gap-3">
                   <FaCheckCircle className="text-emerald-500 text-4xl" />
-                  <p className="text-[15px] font-bold text-gray-800">Welcome to ParkEasy!</p>
+                  <p className="text-[15px] font-bold text-gray-800">Welcome to ParkMate!</p>
                 </div>
               ) : (
                 <>

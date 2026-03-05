@@ -95,7 +95,7 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    const stored = localStorage.getItem('parkeasy_user');
+    const stored = localStorage.getItem('parkmate_user');
     if (stored) {
       const parsed = JSON.parse(stored);
       setUser(parsed);

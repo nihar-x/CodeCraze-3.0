@@ -99,7 +99,7 @@ const Availability = () => {
   };
 
   const handleBookSlot = (slot) => {
-    localStorage.setItem('parkeasy_preselected_slot', JSON.stringify({
+    localStorage.setItem('parkmate_preselected_slot', JSON.stringify({
       ...slot,
       location,
       floor,

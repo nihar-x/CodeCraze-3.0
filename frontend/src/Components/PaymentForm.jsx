@@ -44,9 +44,9 @@ const PaymentForm = ({ booking, onSuccess }) => {
     setLoading(true);
     try {
       // Get booking info and selected slot from localStorage
-      const storedBooking = JSON.parse(localStorage.getItem('parkeasy_booking') || '{}');
-      const storedSlot = JSON.parse(localStorage.getItem('parkeasy_selected_slot') || '{}');
-      const user = JSON.parse(localStorage.getItem('parkeasy_user') || 'null') || {};
+      const storedBooking = JSON.parse(localStorage.getItem('parkmate_booking') || '{}');
+      const storedSlot = JSON.parse(localStorage.getItem('parkmate_selected_slot') || '{}');
+      const user = JSON.parse(localStorage.getItem('parkmate_user') || 'null') || {};
 
       const duration = parseFloat(storedBooking.duration) || 1;
       const pricePerHr = storedSlot.price || 40;
