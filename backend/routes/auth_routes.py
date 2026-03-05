@@ -53,8 +53,8 @@ ParkMate Team
         return jsonify({"message": "OTP sent to email"}), 200
 
     except Exception as e:
-        print("Email sending error:", e)
-        return jsonify({"error": "Failed to send OTP email"}), 500
+        print("Detailed Email Error:", str(e))
+        return jsonify({"error": f"Failed to send OTP email: {str(e)}"}), 500
 
 
 # ───────────────── REGISTER USER ─────────────────
@@ -195,8 +195,8 @@ ParkMate Team
         }), 200
 
     except Exception as e:
-        print("Email sending error:", e)
-        return jsonify({"error": "Failed to send OTP email"}), 500
+        print("Detailed Email Error:", str(e))
+        return jsonify({"error": f"Failed to send OTP email: {str(e)}"}), 500
 
 
 # ───────────────── VERIFY OTP ─────────────────

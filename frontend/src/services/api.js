@@ -1,7 +1,21 @@
 import axios from "axios";
 
+/*
+Environment-based backend URL
+
+For local development:
+VITE_API_BASE_URL=http://localhost:5000/api
+
+For production (Vercel):
+VITE_API_BASE_URL=https://parkmate-backend-7qmh.onrender.com/api
+*/
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://parkmate-backend-7qmh.onrender.com/api";
+
 const API = axios.create({
-  baseURL: "https://parkmate-backend-7qmh.onrender.com/api",
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
