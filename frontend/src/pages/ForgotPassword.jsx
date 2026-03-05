@@ -30,10 +30,15 @@ const ForgotPassword = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    await forgotPassword({ email });
-    setLoading(false);
-    setStep(STEPS.OTP);
-    setResendTimer(30);
+    try {
+      await forgotPassword({ email });
+      setStep(STEPS.OTP);
+      setResendTimer(30);
+    } catch (err) {
+      setError(err.message || 'Failed to send OTP. Please check your email and try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleOtpChange = (val, idx) => {
@@ -55,12 +60,17 @@ const ForgotPassword = () => {
     setError('');
     if (otp.join('').length < 6) { setError('Please enter all 6 digits.'); return; }
     setLoading(true);
-    await verifyOtp({
-      email,
-      otp: otp.join("")
-    });
-    setLoading(false);
-    setStep(STEPS.RESET);
+    try {
+      await verifyOtp({
+        email,
+        otp: otp.join("")
+      });
+      setStep(STEPS.RESET);
+    } catch (err) {
+      setError(err.message || 'Invalid or expired OTP.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleResetPassword = async (e) => {
@@ -69,15 +79,21 @@ const ForgotPassword = () => {
     if (newPass !== confirmPass) { setError('Passwords do not match.'); return; }
     if (newPass.length < 6) { setError('Password must be at least 6 characters.'); return; }
     setLoading(true);
-    await resetPassword({
-      email,
-      newPassword: newPass
-    }); setLoading(false);
-    setStep(STEPS.DONE);
-    setTimeout(() => {
-      navigate('/');
-      window.dispatchEvent(new Event('openLogin'));
-    }, 2000);
+    try {
+      await resetPassword({
+        email,
+        newPassword: newPass
+      });
+      setStep(STEPS.DONE);
+      setTimeout(() => {
+        navigate('/');
+        window.dispatchEvent(new Event('openLogin'));
+      }, 2000);
+    } catch (err) {
+      setError(err.message || 'Failed to reset password.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const stepIndex = { [STEPS.EMAIL]: 1, [STEPS.OTP]: 2, [STEPS.RESET]: 3, [STEPS.DONE]: 3 };

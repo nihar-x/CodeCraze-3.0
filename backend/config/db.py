@@ -17,6 +17,7 @@ users_collection = db["users"]
 slots_collection = db["slots"]
 bookings_collection = db["bookings"]
 payments_collection = db["payments"]
+otps_collection = db["otps"]
 
 
 def init_db():
@@ -76,5 +77,8 @@ def init_db():
     users_collection.create_index("email", unique=True)
     slots_collection.create_index([("location", 1), ("floor", 1)])
     bookings_collection.create_index("user_id")
+
+    # TTL index for OTPs — expire after 5 minutes (300 seconds)
+    otps_collection.create_index("createdAt", expireAfterSeconds=300)
 
     print(f"✅ MongoDB initialized — database: {DB_NAME}")

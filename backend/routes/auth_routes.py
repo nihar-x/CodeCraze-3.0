@@ -1,12 +1,11 @@
+from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify, current_app
 from flask_mail import Message
 from models.user_model import create_user, get_user_by_email, update_user_password
+from config.db import otps_collection
 import random
 
 auth_bp = Blueprint("auth", __name__)
-
-# Temporary OTP storage
-otp_store = {}
 
 
 # ───────────────── SEND SIGNUP OTP ─────────────────
@@ -24,7 +23,13 @@ def send_signup_otp():
             return jsonify({"error": "An account with this email already exists"}), 409
 
         otp = str(random.randint(100000, 999999))
-        otp_store[email] = otp
+        
+        # Store in MongoDB
+        otps_collection.update_one(
+            {"email": email},
+            {"$set": {"otp": otp, "createdAt": datetime.utcnow()}},
+            upsert=True
+        )
 
         msg = Message(
             subject="ParkMate Registration OTP",
@@ -71,7 +76,8 @@ def register():
         if not name or not email or not password or not otp:
             return jsonify({"error": "All fields including OTP are required"}), 400
 
-        if otp_store.get(email) != otp:
+        stored_record = otps_collection.find_one({"email": email})
+        if not stored_record or stored_record.get("otp") != otp:
             return jsonify({"error": "Invalid or expired OTP"}), 401
 
         if len(password) < 6:
@@ -82,8 +88,7 @@ def register():
             return jsonify({"error": "An account with this email already exists"}), 409
 
         user_id = create_user(name, email, password)
-
-        otp_store.pop(email, None)
+        otps_collection.delete_one({"email": email})  # Clean up OTP after successful registration
 
         return jsonify({
             "message": "Account created successfully",
@@ -161,7 +166,12 @@ def forgot_password():
             return jsonify({"error": "No account found with this email"}), 404
 
         otp = str(random.randint(100000, 999999))
-        otp_store[email] = otp
+
+        otps_collection.update_one(
+            {"email": email},
+            {"$set": {"otp": otp, "createdAt": datetime.utcnow()}},
+            upsert=True
+        )
 
         msg = Message(
             subject="ParkMate Password Reset OTP",
@@ -211,10 +221,11 @@ def verify_otp():
         if not email or not otp:
             return jsonify({"error": "Email and OTP are required"}), 400
 
-        stored_otp = otp_store.get(email)
+        stored_record = otps_collection.find_one({"email": email})
+        stored_otp = stored_record.get("otp") if stored_record else None
 
         if stored_otp != otp:
-            return jsonify({"error": "Invalid OTP"}), 401
+            return jsonify({"error": "Invalid or expired OTP"}), 401
 
         return jsonify({"message": "OTP verified"}), 200
 
@@ -240,7 +251,8 @@ def reset_password():
 
         update_user_password(email, new_password)
 
-        otp_store.pop(email, None)
+        # remove OTP after reset
+        otps_collection.delete_one({"email": email})
 
         return jsonify({
             "message": "Password updated successfully"
