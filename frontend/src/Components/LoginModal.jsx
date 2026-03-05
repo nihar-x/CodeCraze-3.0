@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { FaEnvelope, FaLock, FaTimes, FaEye, FaEyeSlash } from 'react-icons/fa';
 
 const LoginModal = ({ isOpen, onClose }) => {
@@ -102,9 +103,13 @@ const LoginModal = ({ isOpen, onClose }) => {
                 <input type="checkbox" className="accent-violet-600 w-3.5 h-3.5" />
                 Remember me
               </label>
-              <button type="button" className="text-[12px] text-violet-600 hover:text-violet-800 font-semibold transition">
+              <Link
+                to="/forgot-password"
+                onClick={onClose}
+                className="text-[12px] text-violet-600 hover:text-violet-800 font-semibold transition"
+              >
                 Forgot password?
-              </button>
+              </Link>
             </div>
 
             <button
@@ -121,10 +126,16 @@ const LoginModal = ({ isOpen, onClose }) => {
             </button>
           </form>
 
-          <p className="mt-5 text-center text-[12px] text-gray-400">
-            Don't have an account?{' '}
-            <button className="text-violet-600 hover:text-violet-800 font-bold transition">Sign Up Free</button>
-          </p>
+            <p className="mt-5 text-center text-[12px] text-gray-400">
+              Don't have an account?{' '}
+              <Link
+                to="/signup"
+                onClick={onClose}
+                className="text-violet-600 hover:text-violet-800 font-bold transition"
+              >
+                Sign Up Free
+              </Link>
+            </p>
         </div>
       </div>
     </div>

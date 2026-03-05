@@ -22,7 +22,7 @@ const BookSlot = () => (
     <div className="max-w-2xl mx-auto px-5 sm:px-8 py-12 relative">
       {/* Page Header */}
       <div className="mb-8 text-center">
-        <span className="badge mb-3">📅 Reserve Your Spot</span>
+        {/* <span className="badge mb-3">📅 Reserve Your Spot</span> */}
         <h1 className="text-[36px] sm:text-[44px] font-extrabold text-gray-900 tracking-tight leading-tight mt-2">
           Book a <span className="gradient-text">Parking Slot</span>
         </h1>

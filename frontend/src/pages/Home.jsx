@@ -87,7 +87,7 @@ const Home = () => (
               to="/book"
               className="inline-flex items-center justify-center gap-2 bg-white text-violet-700 font-bold text-[14px] px-7 py-3.5 rounded-xl hover:bg-violet-50 transition-all duration-200 shadow-md hover:-translate-y-0.5"
             >
-              🚀 Get Started Free
+              Book Slot →
             </Link>
             <Link
               to="/availability"

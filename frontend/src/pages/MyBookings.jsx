@@ -76,7 +76,7 @@ const MyBookings = () => {
 
         {/* Header */}
         <div className="mb-8">
-          <span className="badge mb-3">📋 Dashboard</span>
+          {/* <span className="badge mb-3">📋 Dashboard</span> */}
           <h1 className="text-[36px] sm:text-[44px] font-extrabold text-gray-900 tracking-tight leading-tight mt-2">
             My <span className="gradient-text">Bookings</span>
           </h1>

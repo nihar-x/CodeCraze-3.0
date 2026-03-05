@@ -62,7 +62,7 @@ const Availability = () => {
 
         {/* Header */}
         <div className="mb-8">
-          <span className="badge mb-3">🅿️ Live Parking Status</span>
+          {/* <span className="badge mb-3">🅿️ Live Parking Status</span> */}
           <h1 className="text-[36px] sm:text-[44px] font-extrabold text-gray-900 tracking-tight leading-tight mt-2">
             Slot <span className="gradient-text">Availability</span>
           </h1>
@@ -86,7 +86,7 @@ const Availability = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {/* Location */}
             <div>
-              <label className="block text-[12px] font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+              <label className="flex items-center gap-1.5 text-[12px] font-bold text-gray-500 uppercase tracking-widest mb-2">
                 <FaMapMarkerAlt className="text-violet-400" />
                 Location
               </label>
@@ -106,7 +106,7 @@ const Availability = () => {
 
             {/* Floor */}
             <div>
-              <label className="block text-[12px] font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+              <label className="flex items-center gap-1.5 text-[12px] font-bold text-gray-500 uppercase tracking-widest mb-2">
                 <FaLayerGroup className="text-violet-400" />
                 Floor
               </label>

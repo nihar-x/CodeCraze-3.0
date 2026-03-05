@@ -9,7 +9,9 @@ import BookSlot    from './pages/BookSlot';
 import Availability from './pages/Availability';
 import Payment     from './pages/Payment';
 import MyBookings  from './pages/MyBookings';
-import Contact     from './pages/Contact';
+import Contact        from './pages/Contact';
+import Signup        from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
 
 function App() {
   const [loginOpen, setLoginOpen] = useState(false);
@@ -32,7 +34,9 @@ function App() {
         <Route path="/availability" element={<Availability />} />
         <Route path="/payment"      element={<Payment />}      />
         <Route path="/bookings"     element={<MyBookings />}   />
-        <Route path="/contact"      element={<Contact />}      />
+        <Route path="/contact"         element={<Contact />}         />
+        <Route path="/signup"          element={<Signup />}          />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
       </Routes>
     </BrowserRouter>
   );
