@@ -100,17 +100,16 @@ export const getPaymentStatus = (id) => API.get(`/payments/${id}`);
 
 
 // ─────────────────────────────────────────
-// Magic Link Auth APIs
+// Auth APIs (OTP Based)
 // ─────────────────────────────────────────
-export const sendMagicLink = (data) =>
-  API.post("/auth/send-magic-link", data);
+export const loginUser = (data) => API.post("/auth/login", data);
+export const registerUser = (data) => API.post("/auth/register", data);
+export const sendSignupOtp = (data) => API.post("/auth/send-signup-otp", data);
 
-export const verifyMagicLink = (token) =>
-  API.get("/auth/verify-magic-link", { params: { token } });
-
-// Keeping standard login for admin/legacy
-export const loginUser = (credentials) =>
-  API.post("/auth/login", credentials);
+// Forgot Password
+export const sendForgotOtp = (data) => API.post("/auth/send-forgot-otp", data);
+export const verifyForgotOtp = (data) => API.post("/auth/verify-forgot-otp", data);
+export const resetPassword = (data) => API.post("/auth/reset-password", data);
 
 
 // ─────────────────────────────────────────

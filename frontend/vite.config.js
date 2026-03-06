@@ -5,6 +5,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
-    allowedHosts: 'all'
+    allowedHosts: [
+      "suggest-latest-api-munich.trycloudflare.com"
+    ]
   }
 })

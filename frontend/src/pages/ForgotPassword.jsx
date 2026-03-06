@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { forgotPassword, verifyOtp, resetPassword } from "../services/api";
+import { sendForgotOtp, verifyForgotOtp, resetPassword } from "../services/api";
 import { Link, useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaCar, FaCheckCircle, FaArrowLeft } from 'react-icons/fa';
 
@@ -31,7 +31,7 @@ const ForgotPassword = () => {
     setError('');
     setLoading(true);
     try {
-      await forgotPassword({ email });
+      await sendForgotOtp({ email });
       setStep(STEPS.OTP);
       setResendTimer(30);
     } catch (err) {
@@ -61,7 +61,7 @@ const ForgotPassword = () => {
     if (otp.join('').length < 6) { setError('Please enter all 6 digits.'); return; }
     setLoading(true);
     try {
-      await verifyOtp({
+      await verifyForgotOtp({
         email,
         otp: otp.join("")
       });
@@ -82,6 +82,7 @@ const ForgotPassword = () => {
     try {
       await resetPassword({
         email,
+        otp: otp.join(''),
         newPassword: newPass
       });
       setStep(STEPS.DONE);

@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  FaEnvelope, FaCheckCircle, FaCar, FaPaperPlane
+  FaEnvelope, FaLock, FaUser, FaEye, FaEyeSlash,
+  FaCheckCircle, FaCar, FaArrowLeft
 } from 'react-icons/fa';
-import { sendMagicLink } from '../services/api';
+import { registerUser, sendSignupOtp } from '../services/api';
 
 const perks = [
   { icon: '🚗', text: 'Book parking slots in seconds' },
@@ -12,25 +13,104 @@ const perks = [
   { icon: '📱', text: 'Instant SMS & email confirmations' },
 ];
 
+const STEPS = {
+  INFO: 'info',
+  OTP: 'otp',
+};
+
 const Signup = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [step, setStep] = useState(STEPS.INFO);
+  const [form, setForm] = useState({
+    name: '', email: '', password: '', confirm: '',
+  });
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isSent, setIsSent] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const otpRefs = useRef([]);
 
-  const handleSubmit = async (e) => {
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  const passwordStrength = () => {
+    const p = form.password;
+    if (!p) return 0;
+    let score = 0;
+    if (p.length >= 8) score++;
+    if (/[A-Z]/.test(p)) score++;
+    if (/[0-9]/.test(p)) score++;
+    if (/[^A-Za-z0-9]/.test(p)) score++;
+    return score; // 0-4
+  };
+
+  const strengthLabel = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+  const strengthColor = ['', '#ef4444', '#f59e0b', '#3b82f6', '#10b981'];
+  const strength = passwordStrength();
+
+  const handleInfoSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (form.password !== form.confirm) {
+      setError('Passwords do not match.');
+      return;
+    }
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
     setLoading(true);
-
     try {
-      await sendMagicLink({ email });
-      setIsSent(true);
+      await sendSignupOtp({ email: form.email });
+      setStep(STEPS.OTP);
     } catch (err) {
-      setError(err.message || 'Failed to send login link. Please try again.');
+      setError(err.message || 'Failed to send OTP. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOtpSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    const otpValue = otp.join('');
+    if (otpValue.length < 6) {
+      setError('Please enter the 6-digit OTP.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await registerUser({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        otp: otpValue
+      });
+      // Store user object
+      const newUser = { email: form.email, name: form.name, role: 'user', ...(res.user || {}) };
+      localStorage.setItem('parkmate_user', JSON.stringify(newUser));
+      window.dispatchEvent(new CustomEvent('userLoggedIn'));
+      setSuccess(true);
+      setTimeout(() => navigate('/dashboard'), 1400);
+    } catch (err) {
+      setError(err.message || 'Verification failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOtpChange = (index, value) => {
+    if (!/^\d*$/.test(value)) return;
+    const newOtp = [...otp];
+    newOtp[index] = value.slice(-1);
+    setOtp(newOtp);
+    if (value && index < 5) otpRefs.current[index + 1].focus();
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      otpRefs.current[index - 1].focus();
     }
   };
 
@@ -90,100 +170,192 @@ const Signup = () => {
             <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #7c3aed, #4f46e5, #2563eb)' }} />
 
             <div className="p-8">
-              {isSent ? (
-                <div className="text-center py-10 animate-fade-up">
-                  <div className="w-20 h-20 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-4xl mx-auto mb-6">
-                    <FaPaperPlane className="translate-x-1 -translate-y-1" />
-                  </div>
-                  <h1 className="text-[24px] font-black text-gray-900 mb-3 leading-tight">
-                    Check your inbox!
-                  </h1>
-                  <p className="text-[14px] text-gray-500 leading-relaxed mb-8">
-                    We've sent a magic login link to <br />
-                    <span className="font-bold text-gray-900">{email}</span>. <br />
-                    Click it to instantly create your account and log in.
-                  </p>
+              {step === STEPS.OTP && !success && (
+                <button
+                  onClick={() => setStep(STEPS.INFO)}
+                  className="flex items-center gap-2 text-violet-600 font-semibold text-[12px] mb-6 hover:text-violet-800 transition"
+                >
+                  <FaArrowLeft /> Back
+                </button>
+              )}
 
-                  <div className="space-y-4 pt-4">
-                    <button
-                      onClick={() => setIsSent(false)}
-                      className="w-full bg-violet-600 hover:bg-violet-700 text-white py-4 rounded-xl font-bold text-[14px] transition-all shadow-lg hover:shadow-violet-200"
-                    >
-                      Resend Link
-                    </button>
-                    <Link to="/" className="block text-[13px] font-semibold text-gray-400 hover:text-gray-600 transition">
-                      Back to Home
-                    </Link>
-                  </div>
+              <div className="mb-7">
+                <h1 className="text-[22px] font-extrabold text-gray-900 tracking-tight">
+                  {success ? 'Account created' : step === STEPS.INFO ? 'Create your account' : 'Verify your email'}
+                </h1>
+                <p className="text-[13px] text-gray-400 mt-1">
+                  {success ? 'Redirecting to your dashboard...' : step === STEPS.INFO ? 'Start parking smarter in under 2 minutes.' : `We've sent a code to ${form.email}`}
+                </p>
+              </div>
+
+              {success ? (
+                <div className="flex flex-col items-center justify-center py-10 gap-3">
+                  <FaCheckCircle className="text-emerald-500 text-4xl" />
+                  <p className="text-[15px] font-bold text-gray-800">Welcome to ParkMate!</p>
                 </div>
               ) : (
                 <>
-                  <div className="mb-8">
-                    <h1 className="text-[24px] font-black text-gray-900 tracking-tight">
-                      Sign up for <span className="text-violet-600">ParkMate</span>
-                    </h1>
-                    <p className="text-[14px] text-gray-400 mt-2">
-                      No passwords, no stress. Enter your email to get started.
-                    </p>
-                  </div>
-
                   {error && (
-                    <div className="mb-6 px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-[13px] text-center font-medium">
+                    <div className="mb-5 px-3.5 py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[12px] text-center">
                       {error}
                     </div>
                   )}
 
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Email Input */}
-                    <div className="space-y-2">
-                      <label className="block text-[13px] font-bold text-gray-700 ml-1">Email Address</label>
-                      <div className="relative group">
-                        <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-violet-500 transition-colors text-[12px]" />
-                        <input
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="name@company.com"
-                          required
-                          className="w-full pl-11 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all text-[14px]"
-                        />
+                  {step === STEPS.INFO ? (
+                    <form onSubmit={handleInfoSubmit} className="space-y-4">
+                      {/* Full Name */}
+                      <div>
+                        <label className="block text-[12px] font-semibold text-gray-600 mb-1.5">Full Name</label>
+                        <div className="relative">
+                          <FaUser className="absolute left-3.5 top-1/2 -translate-y-1/2 text-violet-400 text-[11px]" />
+                          <input
+                            type="text" name="name" value={form.name}
+                            onChange={handleChange} placeholder="John Doe" required
+                            className="input-field input-field-icon"
+                          />
+                        </div>
                       </div>
-                    </div>
 
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full bg-violet-600 hover:bg-violet-700 text-white py-4 rounded-xl font-black text-[15px] transition-all shadow-lg hover:shadow-violet-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                    >
-                      {loading ? (
-                        <>
-                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          <span>Sending link...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>Continue with Magic Link</span>
-                          <span className="text-lg">→</span>
-                        </>
-                      )}
-                    </button>
-                  </form>
+                      {/* Email */}
+                      <div>
+                        <label className="block text-[12px] font-semibold text-gray-600 mb-1.5">Email</label>
+                        <div className="relative">
+                          <FaEnvelope className="absolute left-3.5 top-1/2 -translate-y-1/2 text-violet-400 text-[11px]" />
+                          <input
+                            type="email" name="email" value={form.email}
+                            onChange={handleChange} placeholder="you@example.com" required
+                            className="input-field input-field-icon"
+                          />
+                        </div>
+                      </div>
 
-                  <p className="mt-8 text-center text-[13px] text-gray-500 font-medium">
-                    Already have an account?{' '}
-                    <Link to="/" className="text-violet-600 hover:text-violet-800 font-black transition-all"
-                      onClick={() => window.dispatchEvent(new CustomEvent('openLogin'))}>
-                      Log In
-                    </Link>
-                  </p>
+                      {/* Password */}
+                      <div>
+                        <label className="block text-[12px] font-semibold text-gray-600 mb-1.5">Password</label>
+                        <div className="relative">
+                          <FaLock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-violet-400 text-[11px]" />
+                          <input
+                            type={showPass ? 'text' : 'password'} name="password"
+                            value={form.password} onChange={handleChange}
+                            placeholder="••••••••" required
+                            className="input-field input-field-icon pr-10"
+                          />
+                          <button
+                            type="button" onClick={() => setShowPass(!showPass)}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition text-[11px]"
+                          >
+                            {showPass ? <FaEyeSlash /> : <FaEye />}
+                          </button>
+                        </div>
+
+                        {form.password && (
+                          <div className="mt-2">
+                            <div className="flex gap-1 mb-1">
+                              {[1, 2, 3, 4].map((n) => (
+                                <div
+                                  key={n}
+                                  className="h-1 flex-1 rounded-full transition-all duration-300"
+                                  style={{ background: n <= strength ? strengthColor[strength] : '#e5e7eb' }}
+                                />
+                              ))}
+                            </div>
+                            <p className="text-[11px] font-semibold" style={{ color: strengthColor[strength] }}>
+                              {strengthLabel[strength]}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Confirm Password */}
+                      <div>
+                        <label className="block text-[12px] font-semibold text-gray-600 mb-1.5">Confirm Password</label>
+                        <div className="relative">
+                          <FaLock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-violet-400 text-[11px]" />
+                          <input
+                            type={showConfirm ? 'text' : 'password'} name="confirm"
+                            value={form.confirm} onChange={handleChange}
+                            placeholder="••••••••" required
+                            className="input-field input-field-icon pr-10"
+                          />
+                          <button
+                            type="button" onClick={() => setShowConfirm(!showConfirm)}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition text-[11px]"
+                          >
+                            {showConfirm ? <FaEyeSlash /> : <FaEye />}
+                          </button>
+                        </div>
+                        {form.confirm && form.password !== form.confirm && (
+                          <p className="text-[11px] text-red-500 mt-1">Passwords don't match</p>
+                        )}
+                      </div>
+
+                      <button
+                        type="submit" disabled={loading}
+                        className="w-full btn-primary py-3.5 text-[14px] rounded-xl disabled:opacity-60 disabled:cursor-not-allowed mt-4"
+                      >
+                        {loading ? (
+                          <>
+                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                            Sending OTP…
+                          </>
+                        ) : 'Create Account →'}
+                      </button>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleOtpSubmit} className="space-y-6">
+                      <div className="flex justify-between gap-2 sm:gap-3">
+                        {otp.map((digit, idx) => (
+                          <input
+                            key={idx}
+                            ref={(el) => (otpRefs.current[idx] = el)}
+                            type="text"
+                            maxLength="1"
+                            value={digit}
+                            onChange={(e) => handleOtpChange(idx, e.target.value)}
+                            onKeyDown={(e) => handleKeyDown(idx, e)}
+                            className="w-full h-12 sm:h-14 text-center text-lg sm:text-xl font-bold bg-gray-50 border border-gray-200 rounded-xl focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-all"
+                          />
+                        ))}
+                      </div>
+
+                      <button
+                        type="submit" disabled={loading}
+                        className="w-full btn-primary py-3.5 text-[14px] rounded-xl disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {loading ? (
+                          <>
+                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                            Verifying…
+                          </>
+                        ) : 'Verify & Register'}
+                      </button>
+
+                      <p className="text-center text-[12px] text-gray-400">
+                        Didn't receive the code?{' '}
+                        <button
+                          type="button"
+                          onClick={handleInfoSubmit}
+                          className="text-violet-600 font-bold hover:underline"
+                        >
+                          Resend
+                        </button>
+                      </p>
+                    </form>
+                  )}
+
+                  {step === STEPS.INFO && (
+                    <p className="mt-6 text-center text-[12px] text-gray-400">
+                      Already have an account?{' '}
+                      <Link to="/" className="text-violet-600 hover:text-violet-800 font-bold transition"
+                        onClick={() => window.dispatchEvent(new Event('openLogin'))}>
+                        Log In
+                      </Link>
+                    </p>
+                  )}
                 </>
               )}
             </div>
           </div>
-
-          <p className="mt-8 text-center text-[11px] text-gray-400 leading-relaxed px-4">
-            By continuing, you agree to ParkMate's <span className="underline cursor-pointer">Terms of Service</span> and <span className="underline cursor-pointer">Privacy Policy</span>.
-          </p>
         </div>
       </div>
     </div>

@@ -1,17 +1,28 @@
-import os
+import random
 from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app
 from flask_mail import Message
-from models.user_model import create_user, get_user_by_email
-from utils.tokens import generate_token, verify_token
+from models.user_model import create_user, get_user_by_email, update_user_password
+from config.db import otps_collection
 
 auth_bp = Blueprint("auth", __name__)
 
 
-# ───────────────── MAGIC LINK AUTH ─────────────────
+def send_otp_email(email, otp, purpose="registration"):
+    """Utility to send an OTP email."""
+    msg = Message(
+        subject=f"Your OTP for ParkMate {purpose.capitalize()}",
+        sender=current_app.config["MAIL_USERNAME"],
+        recipients=[email],
+    )
+    msg.body = f"Hello,\n\nYour OTP for {purpose} is: {otp}\n\nThis code is valid for 5 minutes.\n\nRegards,\nParkMate Team"
 
-@auth_bp.route("/auth/send-magic-link", methods=["POST"])
-def send_magic_link():
+    mail = current_app.extensions["mail"]
+    mail.send(msg)
+
+
+@auth_bp.route("/auth/send-signup-otp", methods=["POST"])
+def send_signup_otp():
     try:
         data = request.get_json()
         email = data.get("email", "").strip().lower()
@@ -19,95 +30,64 @@ def send_magic_link():
         if not email:
             return jsonify({"error": "Email is required"}), 400
 
-        # Generate signed token (timed)
-        token = generate_token(email)
+        # Check if user already exists
+        if get_user_by_email(email):
+            return jsonify({"error": "An account with this email already exists"}), 409
 
-        # Build magic link
-        # Use frontend URL from .env or fallback
-        frontend_url = os.getenv("FRONTEND_URL", "https://code-craze-3-0.vercel.app")
-        magic_link = f"{frontend_url}/magic-login?token={token}"
+        otp = str(random.randint(100000, 999999))
 
-        msg = Message(
-            subject="Your ParkMate Login Link",
-            sender=current_app.config["MAIL_USERNAME"],
-            recipients=[email]
+        # Save OTP to DB with timestamp for TTL
+        otps_collection.update_one(
+            {"email": email},
+            {"$set": {"otp": otp, "createdAt": datetime.utcnow()}},
+            upsert=True,
         )
 
-        msg.body = f"""
-Hello,
-
-You requested a login link for ParkMate. Click the button or link below to sign in:
-
-{magic_link}
-
-This link is valid for 10 minutes.
-
-If you did not request this, you can safely ignore this email.
-
-Regards,
-ParkMate Team
-"""
-        # Alternatively, send HTML if needed, but keeping it simple for now.
-
-        mail = current_app.extensions["mail"]
-        mail.send(msg)
-
-        print(f"Magic link sent to {email}")
-        return jsonify({"message": "Check your email for the magic login link!"}), 200
+        send_otp_email(email, otp, "Sign Up")
+        return jsonify({"message": "OTP sent to your email"}), 200
 
     except Exception as e:
-        print("Magic link error:", str(e))
-        return jsonify({"error": "Failed to send magic link. Please try again later."}), 500
+        print("Send OTP error:", e)
+        return jsonify({"error": "Failed to send OTP"}), 500
 
 
-@auth_bp.route("/auth/verify-magic-link", methods=["GET"])
-def verify_magic_link():
+@auth_bp.route("/auth/register", methods=["POST"])
+def register():
     try:
-        token = request.args.get("token")
-        if not token:
-            return jsonify({"error": "Login token is missing"}), 400
+        data = request.get_json()
+        name = data.get("name")
+        email = data.get("email", "").strip().lower()
+        password = data.get("password")
+        otp_received = data.get("otp")
 
-        # Verify token and extract email
-        email = verify_token(token, expiration=600)  # 10 minutes expiration
+        if not all([name, email, password, otp_received]):
+            return jsonify({"error": "All fields are required"}), 400
 
-        if not email:
-            return jsonify({"error": "This link is invalid or has expired. Please request a new one."}), 401
+        # Verify OTP
+        otp_record = otps_collection.find_one({"email": email})
+        if not otp_record or otp_record["otp"] != otp_received:
+            return jsonify({"error": "Invalid or expired OTP"}), 401
 
-        # Check if user exists
+        # Delete OTP after successful verification
+        otps_collection.delete_one({"email": email})
+
+        # Create user
+        create_user(name, email, password)
         user = get_user_by_email(email)
 
-        if not user:
-            # First-time user: Create account automatically
-            # We use the prefix of the email as a placeholder name
-            default_name = email.split("@")[0].capitalize()
-            create_user(
-                name=default_name,
-                email=email,
-                password="passwordless_auth", # Placeholder since we use magic links
-                role="user"
-            )
-            user = get_user_by_email(email)
-
-        # In a full JWT system, you'd generate a token here.
-        # For this project's current state, we return user details for localStorage.
-        return jsonify({
-            "message": "Successfully authenticated",
-            "user": user
-        }), 200
+        return jsonify({"message": "Registration successful", "user": user}), 201
 
     except Exception as e:
-        print("Verify link error:", str(e))
-        return jsonify({"error": "Authentication failed"}), 500
+        print("Registration error:", e)
+        return jsonify({"error": "Registration failed"}), 500
 
 
-# ───────────────── LEGACY LOGIN (Optional) ─────────────────
-# Keeping the standard password login for admin access or traditional users if any.
 @auth_bp.route("/auth/login", methods=["POST"])
 def login():
     try:
         data = request.get_json()
         email = data.get("email", "").strip().lower()
-        password = data.get("password", "")
+        password = data.get("password")
 
         if not email or not password:
             return jsonify({"error": "Email and password are required"}), 400
@@ -117,13 +97,87 @@ def login():
             return jsonify({"error": "No account found with this email"}), 404
 
         if user["password"] != password:
-            return jsonify({"error": "Invalid password"}), 401
+            return jsonify({"error": "Invalid credentials"}), 401
 
-        return jsonify({
-            "message": "Login successful",
-            "user": user
-        }), 200
+        return jsonify({"message": "Login successful", "user": user}), 200
 
     except Exception as e:
         print("Login error:", e)
         return jsonify({"error": "Login failed"}), 500
+
+
+@auth_bp.route("/auth/send-forgot-otp", methods=["POST"])
+def send_forgot_otp():
+    try:
+        data = request.get_json()
+        email = data.get("email", "").strip().lower()
+
+        if not email:
+            return jsonify({"error": "Email is required"}), 400
+
+        # Check if user exists
+        if not get_user_by_email(email):
+            return jsonify({"error": "No account found with this email"}), 404
+
+        otp = str(random.randint(100000, 999999))
+
+        otps_collection.update_one(
+            {"email": email},
+            {"$set": {"otp": otp, "createdAt": datetime.utcnow()}},
+            upsert=True,
+        )
+
+        send_otp_email(email, otp, "Password Reset")
+        return jsonify({"message": "Password reset OTP sent to your email"}), 200
+
+    except Exception as e:
+        print("Forgot OTP error:", e)
+        return jsonify({"error": "Failed to send reset code"}), 500
+
+
+@auth_bp.route("/auth/verify-forgot-otp", methods=["POST"])
+def verify_forgot_otp():
+    try:
+        data = request.get_json()
+        email = data.get("email", "").strip().lower()
+        otp_received = data.get("otp")
+
+        if not email or not otp_received:
+            return jsonify({"error": "Email and OTP are required"}), 400
+
+        otp_record = otps_collection.find_one({"email": email})
+        if not otp_record or otp_record["otp"] != otp_received:
+            return jsonify({"error": "Invalid or expired OTP"}), 401
+
+        return jsonify({"message": "OTP verified successfully"}), 200
+
+    except Exception:
+        return jsonify({"error": "Verification failed"}), 500
+
+
+@auth_bp.route("/auth/reset-password", methods=["POST"])
+def reset_password():
+    try:
+        data = request.get_json()
+        email = data.get("email", "").strip().lower()
+        otp_received = data.get("otp")
+        new_password = data.get("newPassword") or data.get("password")
+
+        if not all([email, otp_received, new_password]):
+            return jsonify({"error": "Missing required fields"}), 400
+
+        otp_record = otps_collection.find_one({"email": email})
+        if not otp_record or otp_record["otp"] != otp_received:
+            return jsonify({"error": "Invalid or expired session"}), 401
+
+        # Reset password
+        update_user_password(email, new_password)
+
+        # Clean up OTP
+        otps_collection.delete_one({"email": email})
+
+        return jsonify({"message": "Password reset successful"}), 200
+
+    except Exception as e:
+        print("Reset password error:", e)
+        return jsonify({"error": "Failed to reset password"}), 500
