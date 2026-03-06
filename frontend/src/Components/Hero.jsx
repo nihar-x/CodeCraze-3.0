@@ -52,7 +52,7 @@ const Hero = () => (
 
         {/* Heading */}
         <h1 className="text-[52px] sm:text-[68px] lg:text-[80px] font-extrabold text-white leading-[1.05] tracking-[-0.03em] mb-6 animate-fade-up delay-1">
-          Smart Parking<br />
+          Parking<br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-300 via-purple-200 to-blue-300">
             Made Easy
           </span>
