@@ -1,18 +1,34 @@
 import os
 from pymongo import MongoClient
 from dotenv import load_dotenv
+from pymongo.errors import ConnectionFailure
 
-# Load environment variables from .env
+# ─────────────────────────────────────────
+# Load environment variables
+# ─────────────────────────────────────────
 load_dotenv()
 
 MONGO_URI = os.getenv("MONGO_URI")
-DB_NAME = os.getenv("DB_NAME")
+DB_NAME = os.getenv("DB_NAME", "parkmate_db")
 
+if not MONGO_URI:
+    raise ValueError("❌ MONGO_URI not found in .env file")
+
+# ─────────────────────────────────────────
 # Connect to MongoDB
-client = MongoClient(MONGO_URI)
+# ─────────────────────────────────────────
+try:
+    client = MongoClient(MONGO_URI)
+    client.admin.command("ping")  # test connection
+    print("✅ MongoDB connected successfully")
+except ConnectionFailure as e:
+    raise RuntimeError(f"❌ MongoDB connection failed: {e}")
+
 db = client[DB_NAME]
 
-# ── Collections ──
+# ─────────────────────────────────────────
+# Collections
+# ─────────────────────────────────────────
 users_collection = db["users"]
 slots_collection = db["slots"]
 bookings_collection = db["bookings"]
@@ -20,13 +36,15 @@ payments_collection = db["payments"]
 otps_collection = db["otps"]
 
 
+# ─────────────────────────────────────────
+# Initialize Database
+# ─────────────────────────────────────────
 def init_db():
     """
-    Seed the database with sample parking slots if the slots collection is empty.
-    Locations and floors are kept in sync with the frontend Availability.jsx constants.
+    Seeds parking slots if empty and ensures indexes exist.
     """
 
-    # ── Frontend Availability.jsx constants (keep in sync) ──────────────────
+    # ── Frontend constants (sync with Availability.jsx)
     LOCATIONS = [
         "CityMall",
         "Downtown Parking Hub",
@@ -36,8 +54,8 @@ def init_db():
         "Tech Park Zone 1",
         "Railway Station Lot",
     ]
+
     FLOORS = ["Floor 1", "Floor 2", "Floor 3", "Floor 4", "Basement"]
-    # ────────────────────────────────────────────────────────────────────────
 
     existing_count = slots_collection.count_documents({})
     existing_locations = (
@@ -45,11 +63,14 @@ def init_db():
     )
     expected_locations = set(LOCATIONS)
 
-    # Reseed if empty OR if stored locations no longer match the frontend list
+    # ──────────────────────────────────────
+    # Reseed slots if empty or outdated
+    # ──────────────────────────────────────
     if existing_count == 0 or not expected_locations.issubset(existing_locations):
+
         if existing_count > 0:
             slots_collection.drop()
-            print("🔄 Reseeding slots — location list has changed")
+            print("🔄 Reseeding parking slots (location list changed)")
 
         rows = ["A", "B", "C", "D"]
         cols = [1, 2, 3, 4]
@@ -57,6 +78,7 @@ def init_db():
 
         slot_data = []
         price_idx = 0
+
         for loc in LOCATIONS:
             for flr in FLOORS:
                 for row in rows:
@@ -73,20 +95,30 @@ def init_db():
                         price_idx += 1
 
         slots_collection.insert_many(slot_data)
-        print(f"✅ Seeded {len(slot_data)} parking slots into MongoDB")
-    else:
-        print(f"ℹ️  Slots collection already has {existing_count} documents")
 
-    # Create indexes for faster queries
+        print(f"✅ Seeded {len(slot_data)} parking slots")
+
+    else:
+        print(f"ℹ️ Slots already exist: {existing_count} records")
+
+    # ──────────────────────────────────────
+    # Create indexes
+    # ──────────────────────────────────────
     users_collection.create_index("email", unique=True)
     slots_collection.create_index([("location", 1), ("floor", 1)])
     bookings_collection.create_index("user_id")
+    payments_collection.create_index("booking_id")
 
-    # TTL index for OTPs — expire after 10 minutes (600 seconds)
-    try:
-        otps_collection.drop_index("createdAt_1")
-    except Exception:
-        pass
-    otps_collection.create_index("createdAt", expireAfterSeconds=600)
+    # ──────────────────────────────────────
+    # OTP TTL Index (auto delete after 10 min)
+    # ──────────────────────────────────────
+    indexes = otps_collection.index_information()
 
-    print(f"✅ MongoDB initialized — database: {DB_NAME}")
+    if "createdAt_1" not in indexes:
+        otps_collection.create_index(
+            "createdAt",
+            expireAfterSeconds=600  # 10 minutes
+        )
+        print("✅ OTP TTL index created (10 minutes)")
+
+    print(f"🚀 MongoDB initialized — DB: {DB_NAME}")
