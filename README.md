@@ -38,7 +38,7 @@ ParkMate is a modern, full-stack parking management solution designed to streaml
 
 ### Backend
 - **Framework:** Python Flask
-- **Database:** MongoDB (using Pymongo)
+- **Database:** MongoDB (using PyMongo)
 - **Email Service:** Flask-Mail (for OTPs and Notifications)
 - **Environment Management:** Python-Dotenv
 
@@ -53,72 +53,11 @@ Follow these steps to get the project up and running locally.
 - Node.js (LTS)
 - MongoDB Account (or local instance)
 
+---
+
 ### 1. Backend Setup
+
 1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-2. Create and activate a virtual environment:
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # Windows: venv\Scripts\activate
-   ```
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Configure environment variables in `.env`:
-   ```env
-   MONGO_URI=your_mongodb_uri
-   MAIL_SERVER=smtp.gmail.com
-   MAIL_PORT=587
-   MAIL_USERNAME=your_email
-   MAIL_PASSWORD=your_app_password
-   ```
-5. Start the server:
-   ```bash
-   python3 app.py
-   ```
 
-### 2. Frontend Setup
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
----
-
-## 📁 Project Structure
-
-```text
-ParkMate/
-├── backend/            # Flask API & MongoDB Models
-│   ├── routes/         # API Endpoints
-│   ├── models/         # Database Schemas
-│   └── app.py          # Entry Point
-├── frontend/           # React Application
-│   ├── src/
-│   │   ├── Components/ # Reusable UI Components
-│   │   ├── pages/      # Application Pages
-│   │   └── services/   # API Integration
-│   └── public/         # Static Assets
-└── docs/               # Project Documentation & Images
-```
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-<p align="center">Made with ❤️ by the ParkMate Team</p>
+```bash
+cd backend

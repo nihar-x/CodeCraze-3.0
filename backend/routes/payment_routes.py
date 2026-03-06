@@ -16,7 +16,7 @@ def process_payment():
     data = request.get_json()
 
     booking_id = data.get("booking_id", "")
-    method = data.get("method", "card")         # card | upi
+    method = data.get("method", "card")  # card | upi
     amount = data.get("amount", 0)
 
     if not booking_id or not amount:
@@ -37,22 +37,24 @@ def process_payment():
         }
         payments_collection.insert_one(payment)
 
-        # Update booking status to 'paid'
+        # Ensure status remains 'active'
         try:
             bookings_collection.update_one(
                 {"_id": ObjectId(booking_id)},
-                {"$set": {"status": "paid"}},
+                {"$set": {"status": "active"}},
             )
         except Exception:
             pass  # booking_id may not be a valid ObjectId
 
-        return jsonify({
-            "message": "Payment successful",
-            "txn_id": txn_id,
-            "amount": amount,
-            "method": method,
-            "status": "success",
-        }), 200
+        return jsonify(
+            {
+                "message": "Payment successful",
+                "txn_id": txn_id,
+                "amount": amount,
+                "method": method,
+                "status": "success",
+            }
+        ), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

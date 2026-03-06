@@ -2,22 +2,23 @@ import { useState, useEffect } from 'react';
 import StatsCard from '../Components/StatsCard';
 import { FaBookmark, FaCheckCircle, FaClock, FaCalendarAlt, FaMapMarkerAlt, FaLock } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
-import { getBookings } from '../services/api';
+import { getBookings, cancelBooking } from '../services/api';
 
 const statusCfg = {
-  active:    { cls: 'status-active',    dot: 'bg-emerald-500', label: 'Active'    },
-  confirmed: { cls: 'status-active',   dot: 'bg-emerald-500', label: 'Confirmed' },
-  paid:      { cls: 'status-completed', dot: 'bg-blue-500',   label: 'Paid'      },
-  completed: { cls: 'status-completed', dot: 'bg-blue-500',    label: 'Completed' },
-  cancelled: { cls: 'status-cancelled', dot: 'bg-red-400',     label: 'Cancelled' },
+  active: { cls: 'status-active', dot: 'bg-emerald-500', label: 'Active' },
+  confirmed: { cls: 'status-active', dot: 'bg-emerald-500', label: 'Active' },
+  paid: { cls: 'status-active', dot: 'bg-emerald-500', label: 'Active' },
+  completed: { cls: 'status-completed', dot: 'bg-blue-500', label: 'Completed' },
+  cancelled: { cls: 'status-cancelled', dot: 'bg-red-400', label: 'Cancelled' },
 };
 
 const MyBookings = () => {
-  const [user, setUser]         = useState(null);
+  const [user, setUser] = useState(null);
   const [bookings, setBookings] = useState([]);
-  const [loading, setLoading]   = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [cancelling, setCancelling] = useState(null);
 
-  useEffect(() => {
+  const fetchBookings = () => {
     const stored = localStorage.getItem('parkmate_user');
     if (stored) {
       const parsed = JSON.parse(stored);
@@ -25,7 +26,7 @@ const MyBookings = () => {
 
       setLoading(true);
       const params = {};
-      if (parsed._id)   params.user_id    = parsed._id;
+      if (parsed._id) params.user_id = parsed._id;
       if (parsed.email) params.user_email = parsed.email;
 
       getBookings(params)
@@ -38,10 +39,27 @@ const MyBookings = () => {
         })
         .finally(() => setLoading(false));
     }
+  };
+
+  useEffect(() => {
+    fetchBookings();
   }, []);
 
-  const total     = bookings.length;
-  const active    = bookings.filter((b) => ['active', 'confirmed'].includes(b.status)).length;
+  const handleCancel = async (id) => {
+    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+    setCancelling(id);
+    try {
+      await cancelBooking(id);
+      fetchBookings();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setCancelling(null);
+    }
+  };
+
+  const total = bookings.length;
+  const active = bookings.filter((b) => ['active', 'confirmed'].includes(b.status)).length;
   const completed = bookings.filter((b) => ['completed', 'paid'].includes(b.status)).length;
 
   /* ── Not logged in ── */
@@ -91,9 +109,9 @@ const MyBookings = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">
-          <StatsCard icon={<FaBookmark />}    label="Total Bookings"  value={total}     color="purple" />
-          <StatsCard icon={<FaClock />}       label="Active"          value={active}    color="green"  />
-          <StatsCard icon={<FaCheckCircle />} label="Completed"       value={completed} color="blue"   />
+          <StatsCard icon={<FaBookmark />} label="Total Bookings" value={total} color="purple" />
+          <StatsCard icon={<FaClock />} label="Active" value={active} color="green" />
+          <StatsCard icon={<FaCheckCircle />} label="Completed" value={completed} color="blue" />
         </div>
 
         {/* Bookings */}
@@ -116,63 +134,103 @@ const MyBookings = () => {
                 <p className="text-[12px] text-gray-400 mt-1">Book a parking slot to see it here.</p>
               </div>
             ) : (
-            bookings.map((b, i) => {
-              const cfg = statusCfg[b.status] || statusCfg.completed;
-              return (
-                <div
-                  key={b._id || b.id || i}
-                  className={`px-6 py-5 row-hover animate-fade-up ${
-                    i < bookings.length - 1 ? 'border-b border-gray-100' : ''
-                  }`}
-                  style={{ animationDelay: `${i * 0.08}s` }}
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-start gap-3.5 min-w-0">
-                      {/* Icon */}
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-base"
-                        style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}
-                      >
-                        📍
+              bookings.map((b, i) => {
+                const cfg = statusCfg[b.status?.toLowerCase()] || statusCfg.completed;
+                return (
+                  <div
+                    key={b._id || b.id || i}
+                    className={`px-6 py-5 row-hover animate-fade-up ${i < bookings.length - 1 ? 'border-b border-gray-100' : ''
+                      }`}
+                    style={{ animationDelay: `${i * 0.08}s` }}
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-start gap-3.5 min-w-0">
+                        {/* Icon */}
+                        <div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-base"
+                          style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}
+                        >
+                          📍
+                        </div>
+
+                        {/* Details */}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            <p className="font-semibold text-gray-900 text-[14px] truncate">{b.location}</p>
+                            <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.cls}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                              {cfg.label}
+                            </span>
+                          </div>
+                          <p className="text-[12px] text-gray-400 mt-1">
+                            Slot{' '}
+                            <span className="text-violet-600 font-mono font-semibold">{b.slot_id || b.slotId}</span>
+                            {' · '}
+                            <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{b.vehicle || b.vehicle_number}</span>
+                          </p>
+                          <div className="flex items-center gap-4 mt-1.5 text-[11px] text-gray-400">
+                            <span className="flex items-center gap-1">
+                              <FaCalendarAlt className="text-violet-400 text-[10px]" />
+                              {b.date} · {b.time}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <FaClock className="text-blue-400 text-[10px]" />
+                              {b.duration}h
+                            </span>
+                          </div>
+                        </div>
                       </div>
 
-                      {/* Details */}
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2.5 flex-wrap">
-                          <p className="font-semibold text-gray-900 text-[14px] truncate">{b.location}</p>
-                          <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.cls}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                            {cfg.label}
-                          </span>
+                      {/* Amount & Actions */}
+                      <div className="text-right flex-shrink-0 flex flex-col items-end gap-2">
+                        <div>
+                          <p className="text-[22px] font-extrabold gradient-text tracking-tight leading-none">₹{b.total || b.amount}</p>
+                          <p className="text-[10px] text-gray-400 font-mono mt-1 text-right">#{(b._id || b.id || '').slice(-6)}</p>
                         </div>
-                        <p className="text-[12px] text-gray-400 mt-1">
-                          Slot{' '}
-                          <span className="text-violet-600 font-mono font-semibold">{b.slot_id || b.slotId}</span>
-                          {' · '}
-                          <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{b.vehicle || b.vehicle_number}</span>
-                        </p>
-                        <div className="flex items-center gap-4 mt-1.5 text-[11px] text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <FaCalendarAlt className="text-violet-400 text-[10px]" />
-                            {b.date} · {b.time}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <FaClock className="text-blue-400 text-[10px]" />
-                            {b.duration}h
-                          </span>
-                        </div>
+
+                        {['active', 'confirmed', 'paid'].includes(b.status?.toLowerCase()) && (
+                          <button
+                            onClick={() => handleCancel(b._id || b.id)}
+                            disabled={cancelling === (b._id || b.id)}
+                            className="px-8 py-3 rounded-2xl text-[14px] font-extrabold text-red-500 hover:bg-red-50 border-2 border-red-100 shadow-md transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50"
+                          >
+                            {cancelling === (b._id || b.id) ? 'Cancelling...' : 'Cancel Booking'}
+                          </button>
+                        )}
                       </div>
                     </div>
 
-                    {/* Amount */}
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-[22px] font-extrabold gradient-text tracking-tight leading-none">₹{b.total || b.amount}</p>
-                      <p className="text-[10px] text-gray-400 font-mono mt-1">#{(b._id || b.id || '').slice(-6)}</p>
+                    {/* Expanded Details */}
+                    <div className="mt-4 pt-4 border-t border-gray-50 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div>
+                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">Vehicle Details</p>
+                        <p className="text-[12px] text-gray-700 font-medium">
+                          {b.vehicle_details?.make} {b.vehicle_details?.model} ({b.vehicle || b.vehicle_number})
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">Entry / Exit</p>
+                        <p className="text-[12px] text-gray-700 font-medium font-mono">
+                          In: {b.entry_time ? new Date(b.entry_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : b.time}
+                          {b.exit_time && ` / Out: ${new Date(b.exit_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">Payment</p>
+                        <p className="text-[12px] text-gray-700 font-medium">
+                          {b.payment_details?.method?.toUpperCase() || 'ONLINE'} · <span className="text-[10px] font-mono text-gray-400">ID: {(b.payment_details?.transaction_id || '').slice(-8)}</span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">Status</p>
+                        <p className={`text-[12px] font-bold ${cfg.cls.replace('status-', 'text-')}`}>
+                          {cfg.label}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })
+                );
+              })
             )}
           </div>
         </div>

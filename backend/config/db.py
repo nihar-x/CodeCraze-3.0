@@ -40,7 +40,9 @@ def init_db():
     # ────────────────────────────────────────────────────────────────────────
 
     existing_count = slots_collection.count_documents({})
-    existing_locations = set(slots_collection.distinct("location")) if existing_count > 0 else set()
+    existing_locations = (
+        set(slots_collection.distinct("location")) if existing_count > 0 else set()
+    )
     expected_locations = set(LOCATIONS)
 
     # Reseed if empty OR if stored locations no longer match the frontend list
@@ -59,13 +61,15 @@ def init_db():
             for flr in FLOORS:
                 for row in rows:
                     for col in cols:
-                        slot_data.append({
-                            "slot_number": f"{row}{col}",
-                            "location": loc,
-                            "floor": flr,
-                            "status": "available",
-                            "price": prices[price_idx % len(prices)],
-                        })
+                        slot_data.append(
+                            {
+                                "slot_number": f"{row}{col}",
+                                "location": loc,
+                                "floor": flr,
+                                "status": "available",
+                                "price": prices[price_idx % len(prices)],
+                            }
+                        )
                         price_idx += 1
 
         slots_collection.insert_many(slot_data)
@@ -78,7 +82,11 @@ def init_db():
     slots_collection.create_index([("location", 1), ("floor", 1)])
     bookings_collection.create_index("user_id")
 
-    # TTL index for OTPs — expire after 5 minutes (300 seconds)
-    otps_collection.create_index("createdAt", expireAfterSeconds=300)
+    # TTL index for OTPs — expire after 10 minutes (600 seconds)
+    try:
+        otps_collection.drop_index("createdAt_1")
+    except Exception:
+        pass
+    otps_collection.create_index("createdAt", expireAfterSeconds=600)
 
     print(f"✅ MongoDB initialized — database: {DB_NAME}")

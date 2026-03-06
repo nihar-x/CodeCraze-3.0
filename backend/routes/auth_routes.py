@@ -1,24 +1,14 @@
 import random
 from datetime import datetime
-from flask import Blueprint, request, jsonify, current_app
-from flask_mail import Message
+from flask import Blueprint, request, jsonify
 from models.user_model import create_user, get_user_by_email, update_user_password
 from config.db import otps_collection
+from services.email_service import EmailService
 
 auth_bp = Blueprint("auth", __name__)
 
 
-def send_otp_email(email, otp, purpose="registration"):
-    """Utility to send an OTP email."""
-    msg = Message(
-        subject=f"Your OTP for ParkMate {purpose.capitalize()}",
-        sender=current_app.config["MAIL_USERNAME"],
-        recipients=[email],
-    )
-    msg.body = f"Hello,\n\nYour OTP for {purpose} is: {otp}\n\nThis code is valid for 5 minutes.\n\nRegards,\nParkMate Team"
-
-    mail = current_app.extensions["mail"]
-    mail.send(msg)
+# Redundant send_otp_email function removed - using EmailService instead
 
 
 @auth_bp.route("/auth/send-signup-otp", methods=["POST"])
@@ -36,14 +26,15 @@ def send_signup_otp():
 
         otp = str(random.randint(100000, 999999))
 
-        # Save OTP to DB with timestamp for TTL
+        # Save OTP with 10-minute expiration (enforced by TTL index if configured)
         otps_collection.update_one(
             {"email": email},
             {"$set": {"otp": otp, "createdAt": datetime.utcnow()}},
             upsert=True,
         )
 
-        send_otp_email(email, otp, "Sign Up")
+        # Trigger EmailService
+        EmailService.send_otp_email(email, otp, "Sign Up")
         return jsonify({"message": "OTP sent to your email"}), 200
 
     except Exception as e:
@@ -127,7 +118,7 @@ def send_forgot_otp():
             upsert=True,
         )
 
-        send_otp_email(email, otp, "Password Reset")
+        EmailService.send_otp_email(email, otp, "Password Reset")
         return jsonify({"message": "Password reset OTP sent to your email"}), 200
 
     except Exception as e:

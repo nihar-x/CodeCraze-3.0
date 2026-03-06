@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from config.db import users_collection, bookings_collection, slots_collection
+from models.booking_model import update_booking_status_by_id
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -16,6 +17,7 @@ def list_users():
     query = {}
     if search:
         import re
+
         pattern = re.compile(search, re.IGNORECASE)
         query = {"$or": [{"name": pattern}, {"email": pattern}]}
 
@@ -45,16 +47,16 @@ def admin_stats():
     for b in all_bookings:
         b["_id"] = str(b["_id"])
 
-    total_revenue   = sum(b.get("total", 0) for b in all_bookings)
-    total_bookings  = len(all_bookings)
-    active_count    = sum(1 for b in all_bookings if b.get("status") in ("active", "confirmed"))
-    completed_count = sum(1 for b in all_bookings if b.get("status") in ("completed", "paid"))
+    total_revenue = sum(b.get("total", 0) for b in all_bookings)
+    total_bookings = len(all_bookings)
+    active_count = sum(1 for b in all_bookings if b.get("status") == "active")
+    completed_count = sum(1 for b in all_bookings if b.get("status") == "completed")
     cancelled_count = sum(1 for b in all_bookings if b.get("status") == "cancelled")
 
     # Slot counts from DB
-    total_slots     = slots_collection.count_documents({})
+    total_slots = slots_collection.count_documents({})
     available_slots = slots_collection.count_documents({"status": "available"})
-    occupied_slots  = slots_collection.count_documents({"status": "occupied"})
+    occupied_slots = slots_collection.count_documents({"status": "occupied"})
 
     # Top locations by revenue
     location_rev = {}
@@ -70,6 +72,7 @@ def admin_stats():
 
     # Monthly revenue for sparkline (last 6 months)
     from datetime import datetime
+
     now = datetime.utcnow()
     monthly = []
     for i in range(5, -1, -1):
@@ -91,19 +94,21 @@ def admin_stats():
     # Registered users count
     total_users = users_collection.count_documents({})
 
-    return jsonify({
-        "total_revenue":    total_revenue,
-        "total_bookings":   total_bookings,
-        "active_count":     active_count,
-        "completed_count":  completed_count,
-        "cancelled_count":  cancelled_count,
-        "total_slots":      total_slots,
-        "available_slots":  available_slots,
-        "occupied_slots":   occupied_slots,
-        "top_locations":    top_locations,
-        "monthly_revenue":  monthly,
-        "total_users":      total_users,
-    }), 200
+    return jsonify(
+        {
+            "total_revenue": total_revenue,
+            "total_bookings": total_bookings,
+            "active_count": active_count,
+            "completed_count": completed_count,
+            "cancelled_count": cancelled_count,
+            "total_slots": total_slots,
+            "available_slots": available_slots,
+            "occupied_slots": occupied_slots,
+            "top_locations": top_locations,
+            "monthly_revenue": monthly,
+            "total_users": total_users,
+        }
+    ), 200
 
 
 # ──────────────── RESET ALL SLOTS TO AVAILABLE ────────────────
@@ -114,9 +119,43 @@ def reset_all_slots():
     Resets every parking slot in the DB back to 'available'.
     """
     result = slots_collection.update_many({}, {"$set": {"status": "available"}})
-    return jsonify({
-        "message": "All slots reset to available",
-        "modified": result.modified_count,
-        "total": slots_collection.count_documents({}),
-    }), 200
+    return jsonify(
+        {
+            "message": "All slots reset to available",
+            "modified": result.modified_count,
+            "total": slots_collection.count_documents({}),
+        }
+    ), 200
 
+
+# ──────────────── STATUS UPDATE ────────────────
+@admin_bp.route("/admin/bookings/<booking_id>/status", methods=["PATCH"])
+def admin_update_booking_status(booking_id):
+    """
+    PATCH /api/admin/bookings/<booking_id>/status
+    Body: {"status": "active/completed/cancelled/..."}
+    """
+    data = request.json
+    new_status = data.get("status")
+
+    if not new_status:
+        return jsonify({"error": "Status is required"}), 400
+
+    result = update_booking_status_by_id(booking_id, new_status)
+    if not result:
+        return jsonify({"error": "Update failed"}), 404
+
+    return jsonify({"message": f"Status updated to {new_status}"}), 200
+
+
+# ──────────────── MARK BOOKING COMPLETED ────────────────
+@admin_bp.route("/admin/bookings/<booking_id>/complete", methods=["POST"])
+def admin_complete_booking(booking_id):
+    """
+    POST /api/admin/bookings/<booking_id>/complete
+    Marks a booking as completed (user left).
+    """
+    result = update_booking_status_by_id(booking_id, "completed")
+    if not result:
+        return jsonify({"error": "Booking not found or could not be updated"}), 404
+    return jsonify({"message": "Booking marked as completed"}), 200

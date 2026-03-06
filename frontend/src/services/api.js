@@ -135,6 +135,11 @@ export const getAdminStats = () => API.get("/admin/stats");
 
 export const getAdminUsers = (q = "") =>
   API.get("/admin/users", { params: q ? { q } : {} });
+export const completeBooking = (id) =>
+  API.post(`/admin/bookings/${id}/complete`);
+
+export const updateBookingStatus = (id, status) =>
+  API.patch(`/admin/bookings/${id}/status`, { status });
 
 
 // Export Axios instance if needed

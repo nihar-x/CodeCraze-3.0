@@ -30,10 +30,17 @@ def book_slot():
     time = data.get("time", "").strip()
     duration = data.get("duration", 1)
     total = data.get("total", 0)
-    user_id = data.get("user_id", "")           # optional (guest bookings allowed)
-    user_email = data.get("user_email", "")     # for reliable dashboard lookup
+    user_id = data.get("user_id", "")  # optional (guest bookings allowed)
+    user_email = data.get("user_email", "")  # for reliable dashboard lookup
 
-    if not slot_id or not full_name or not vehicle or not date or not time or not location:
+    if (
+        not slot_id
+        or not full_name
+        or not vehicle
+        or not date
+        or not time
+        or not location
+    ):
         return jsonify({"error": "Missing required booking fields"}), 400
 
     try:
@@ -49,11 +56,14 @@ def book_slot():
             duration=float(duration),
             total=float(total),
             user_email=user_email,
+            data=data,
         )
-        return jsonify({
-            "message": "Booking confirmed!",
-            "booking_id": booking_id,
-        }), 201
+        return jsonify(
+            {
+                "message": "Booking confirmed!",
+                "booking_id": booking_id,
+            }
+        ), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -72,7 +82,7 @@ def list_bookings():
     Returns bookings for a specific user (by id OR email, merged & deduped).
     Falls back to all bookings if neither param is provided.
     """
-    user_id    = request.args.get("user_id", "").strip()
+    user_id = request.args.get("user_id", "").strip()
     user_email = request.args.get("user_email", "").strip().lower()
 
     if user_id or user_email:

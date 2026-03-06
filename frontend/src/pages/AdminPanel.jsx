@@ -1,18 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   FaUsers, FaBookmark, FaRupeeSign, FaCarAlt, FaParking,
-  FaCheckCircle, FaBan, FaClock, FaChartBar, FaSearch,
+  FaClock, FaChartBar, FaSearch,
   FaShieldAlt, FaArrowUp, FaEye, FaSignOutAlt, FaSync,
 } from 'react-icons/fa';
 import { getBookings, getAdminStats, getAdminUsers } from '../services/api';
 
 /* ── status config ─────────────────────────────────────────────── */
 const statusCfg = {
-  active:    { cls: 'status-active',    dot: 'bg-emerald-500', label: 'Active'    },
-  confirmed: { cls: 'status-active',    dot: 'bg-emerald-500', label: 'Confirmed' },
-  paid:      { cls: 'status-completed', dot: 'bg-blue-500',    label: 'Paid'      },
-  completed: { cls: 'status-completed', dot: 'bg-blue-500',    label: 'Completed' },
-  cancelled: { cls: 'status-cancelled', dot: 'bg-red-400',     label: 'Cancelled' },
+  active: { cls: 'status-active', dot: 'bg-emerald-500', label: 'Active' },
+  confirmed: { cls: 'status-active', dot: 'bg-emerald-500', label: 'Active' },
+  paid: { cls: 'status-active', dot: 'bg-emerald-500', label: 'Active' },
+  completed: { cls: 'status-completed', dot: 'bg-blue-500', label: 'Completed' },
+  cancelled: { cls: 'status-cancelled', dot: 'bg-red-400', label: 'Cancelled' },
 };
 
 /* ── tiny sparkline bar ───────────────────────────────────────── */
@@ -50,14 +50,15 @@ const SkeletonRow = ({ cols }) => (
 
 /* ═══════════════════════════════════════════════════════════════ */
 const AdminPanel = ({ user, onLogout }) => {
-  const [bookings, setBookings]   = useState([]);
-  const [users, setUsers]         = useState([]);
-  const [stats, setStats]         = useState(null);
-  const [loadingB, setLoadingB]   = useState(true);
-  const [loadingU, setLoadingU]   = useState(true);
-  const [loadingS, setLoadingS]   = useState(true);
-  const [section, setSection]     = useState('overview');
-  const [search, setSearch]       = useState('');
+  const [bookings, setBookings] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loadingB, setLoadingB] = useState(true);
+  const [loadingU, setLoadingU] = useState(true);
+  const [loadingS, setLoadingS] = useState(true);
+  const [section, setSection] = useState('overview');
+  const [search, setSearch] = useState('');
+  const [completing, setCompleting] = useState(null);
 
   /* ── fetch all data ── */
   const fetchAll = useCallback(() => {
@@ -86,15 +87,15 @@ const AdminPanel = ({ user, onLogout }) => {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   /* ── derived from stats (with live bookings fallback) ── */
-  const totalRevenue   = stats?.total_revenue   ?? bookings.reduce((s, b) => s + (b.total || 0), 0);
-  const totalBookings  = stats?.total_bookings  ?? bookings.length;
-  const activeCount    = stats?.active_count    ?? bookings.filter(b => ['active','confirmed'].includes(b.status)).length;
-  const completedCount = stats?.completed_count ?? bookings.filter(b => ['completed','paid'].includes(b.status)).length;
+  const totalRevenue = stats?.total_revenue ?? bookings.reduce((s, b) => s + (b.total || 0), 0);
+  const totalBookings = stats?.total_bookings ?? bookings.length;
+  const activeCount = stats?.active_count ?? bookings.filter(b => ['active', 'confirmed'].includes(b.status)).length;
+  const completedCount = stats?.completed_count ?? bookings.filter(b => ['completed', 'paid'].includes(b.status)).length;
   const cancelledCount = stats?.cancelled_count ?? bookings.filter(b => b.status === 'cancelled').length;
-  const totalSlots     = stats?.total_slots     ?? 0;
+  const totalSlots = stats?.total_slots ?? 0;
   const availableSlots = stats?.available_slots ?? 0;
-  const totalUsers     = stats?.total_users     ?? users.length;
-  const topLocations   = stats?.top_locations   ?? [];
+  const totalUsers = stats?.total_users ?? users.length;
+  const topLocations = stats?.top_locations ?? [];
 
   // Sparkline: last 6 monthly values from stats, or zeros
   const sparkValues = stats?.monthly_revenue?.map(m => m.value) ?? [0, 0, 0, 0, 0, totalRevenue];
@@ -118,10 +119,10 @@ const AdminPanel = ({ user, onLogout }) => {
   });
 
   const navItems = [
-    { key: 'overview',  icon: <FaChartBar />,  label: 'Overview'  },
-    { key: 'bookings',  icon: <FaBookmark />,  label: 'Bookings'  },
-    { key: 'users',     icon: <FaUsers />,     label: 'Users'     },
-    { key: 'slots',     icon: <FaParking />,   label: 'Slots'     },
+    { key: 'overview', icon: <FaChartBar />, label: 'Overview' },
+    { key: 'bookings', icon: <FaBookmark />, label: 'Bookings' },
+    { key: 'users', icon: <FaUsers />, label: 'Users' },
+    { key: 'slots', icon: <FaParking />, label: 'Slots' },
   ];
 
   /* ── slot visual map — driven by real slots from bookings ── */
@@ -181,11 +182,10 @@ const AdminPanel = ({ user, onLogout }) => {
               <button
                 key={item.key}
                 onClick={() => setSection(item.key)}
-                className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-150 text-left ${
-                  section === item.key
-                    ? 'bg-violet-100 text-violet-700 shadow-sm'
-                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
-                }`}
+                className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-150 text-left ${section === item.key
+                  ? 'bg-violet-100 text-violet-700 shadow-sm'
+                  : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+                  }`}
               >
                 <span className="text-[12px]">{item.icon}</span>
                 {item.label}
@@ -199,9 +199,8 @@ const AdminPanel = ({ user, onLogout }) => {
               <button
                 key={item.key}
                 onClick={() => setSection(item.key)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-semibold transition-all ${
-                  section === item.key ? 'bg-white text-violet-700 shadow-sm' : 'text-gray-500'
-                }`}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-semibold transition-all ${section === item.key ? 'bg-white text-violet-700 shadow-sm' : 'text-gray-500'
+                  }`}
               >
                 <span>{item.icon}</span>
                 <span className="hidden xs:inline">{item.label}</span>
@@ -308,7 +307,7 @@ const AdminPanel = ({ user, onLogout }) => {
                   </div>
                   {loadingB ? (
                     <div className="divide-y divide-gray-50">
-                      {[1,2,3,4,5].map(i => (
+                      {[1, 2, 3, 4, 5].map(i => (
                         <div key={i} className="px-5 py-4 flex items-center gap-3">
                           <div className="w-9 h-9 rounded-xl bg-gray-100 animate-pulse flex-shrink-0" />
                           <div className="flex-1 space-y-1.5">
@@ -334,11 +333,11 @@ const AdminPanel = ({ user, onLogout }) => {
                             </div>
                           </div>
                           <div className="flex items-center gap-3 flex-shrink-0">
-                            <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.cls}`}>
+                            <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${cfg.cls} shadow-sm border border-black/5`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
                               {cfg.label}
                             </span>
-                            <p className="text-[14px] font-extrabold gradient-text">₹{b.total}</p>
+                            <p className="text-[14px] font-extrabold gradient-text ml-1">₹{b.total}</p>
                           </div>
                         </div>
                       );
@@ -351,7 +350,7 @@ const AdminPanel = ({ user, onLogout }) => {
                   <h2 className="text-[14px] font-bold text-gray-900 mb-4">Top Locations by Revenue</h2>
                   {loadingS ? (
                     <div className="space-y-3">
-                      {[1,2,3].map(i => (
+                      {[1, 2, 3].map(i => (
                         <div key={i} className="flex items-center gap-3">
                           <div className="h-2.5 w-4 bg-gray-100 rounded animate-pulse" />
                           <div className="flex-1 space-y-1">
@@ -416,37 +415,63 @@ const AdminPanel = ({ user, onLogout }) => {
                     <table className="w-full text-[12px]">
                       <thead>
                         <tr className="border-b border-gray-100 bg-gray-50/50">
-                          {['ID', 'Name', 'Location', 'Slot', 'Vehicle', 'Date', 'Duration', 'Amount', 'Status'].map(h => (
+                          {['ID', 'Customer', 'Vehicle', 'Location & Slot', 'Times', 'Payment', 'Status'].map(h => (
                             <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 whitespace-nowrap">{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {loadingB ? (
-                          [1,2,3,4,5].map(i => <SkeletonRow key={i} cols={9} />)
+                          [1, 2, 3, 4, 5].map(i => <SkeletonRow key={i} cols={8} />)
                         ) : filteredBookings.length === 0 ? (
-                          <tr><td colSpan={9} className="text-center py-12 text-gray-400">No bookings found.</td></tr>
+                          <tr><td colSpan={8} className="text-center py-12 text-gray-400">No bookings found.</td></tr>
                         ) : filteredBookings.map((b, i) => {
                           const cfg = statusCfg[b.status] || statusCfg.completed;
                           return (
                             <tr key={b._id || i} className="border-b border-gray-50 row-hover">
                               <td className="px-4 py-3 font-mono text-gray-400">#{(b._id || '').slice(-6)}</td>
                               <td className="px-4 py-3">
-                                <p className="font-semibold text-gray-800 whitespace-nowrap">{b.full_name || b.user_name || '—'}</p>
+                                <p className="font-bold text-gray-900">{b.full_name || b.user_name || '—'}</p>
+                                <p className="text-[10px] text-gray-400">{b.owner_details?.email || b.user_email}</p>
                               </td>
                               <td className="px-4 py-3">
-                                <p className="text-gray-700 font-medium whitespace-nowrap">{b.location}</p>
+                                <p className="font-semibold text-gray-700">{b.vehicle_details?.make} {b.vehicle_details?.model}</p>
+                                <p className="text-[10px] font-mono text-violet-600 bg-violet-50 px-1 rounded inline-block uppercase">
+                                  {b.vehicle || b.vehicle_number}
+                                </p>
                               </td>
-                              <td className="px-4 py-3 font-mono text-violet-600 font-semibold">{b.slot_id || b.slotId}</td>
-                              <td className="px-4 py-3 font-mono text-gray-500">{b.vehicle || b.vehicle_number}</td>
-                              <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{b.date} {b.time}</td>
-                              <td className="px-4 py-3 text-gray-500">{b.duration}h</td>
-                              <td className="px-4 py-3 font-bold gradient-text">₹{b.total || b.amount}</td>
+                              <td className="px-4 py-3">
+                                <p className="text-gray-700 font-medium">{b.location}</p>
+                                <p className="text-[10px] text-gray-400">Floor {b.floor} · Slot <span className="text-violet-600 font-bold">{b.slot_id}</span></p>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="space-y-0.5">
+                                  <p className="text-[11px] text-gray-600 flex items-center gap-1.5 font-mono">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                    {b.entry_time ? new Date(b.entry_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : b.time}
+                                  </p>
+                                  {b.exit_time && (
+                                    <p className="text-[11px] text-gray-600 flex items-center gap-1.5 font-mono">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                      {new Date(b.exit_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                  )}
+                                  <p className="text-[9px] text-gray-400 uppercase font-bold tracking-tighter">Dur: {b.duration}h</p>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <p className="font-extrabold text-blue-600">₹{b.total}</p>
+                                <p className="text-[9px] text-gray-400 uppercase">{b.payment_details?.method || 'ONLINE'} · PAID</p>
+                              </td>
                               <td className="px-4 py-3">
                                 <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${cfg.cls}`}>
                                   <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
                                   {cfg.label}
                                 </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                {/* No Actions as requested */}
+                                <div className="w-1" />
                               </td>
                             </tr>
                           );
@@ -489,7 +514,7 @@ const AdminPanel = ({ user, onLogout }) => {
                       </thead>
                       <tbody>
                         {loadingU ? (
-                          [1,2,3,4].map(i => <SkeletonRow key={i} cols={6} />)
+                          [1, 2, 3, 4].map(i => <SkeletonRow key={i} cols={6} />)
                         ) : filteredUsers.length === 0 ? (
                           <tr><td colSpan={6} className="text-center py-12 text-gray-400">No users found.</td></tr>
                         ) : filteredUsers.map((u) => (
@@ -507,11 +532,10 @@ const AdminPanel = ({ user, onLogout }) => {
                             <td className="px-4 py-3 font-bold gradient-text">₹{u.spent ?? 0}</td>
                             <td className="px-4 py-3 text-gray-400">{u.joined || u.created_at?.slice(0, 10) || '—'}</td>
                             <td className="px-4 py-3">
-                              <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                                u.status === 'active'
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : 'bg-red-50 text-red-700 border border-red-200'
-                              }`}>
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${u.status === 'active'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-red-50 text-red-700 border border-red-200'
+                                }`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${u.status === 'active' ? 'bg-emerald-500' : 'bg-red-500'}`} />
                                 {u.status === 'active' ? 'Active' : 'Blocked'}
                               </span>
@@ -530,10 +554,10 @@ const AdminPanel = ({ user, onLogout }) => {
               <div className="animate-fade-up space-y-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
-                    { label: 'Total Slots',     val: loadingS ? '…' : totalSlots,                    icon: <FaParking />,      color: 'icon-purple' },
-                    { label: 'Available',        val: loadingS ? '…' : (stats?.available_slots ?? 0), icon: <FaCheckCircle />,  color: 'icon-green' },
-                    { label: 'Occupied',         val: loadingS ? '…' : (stats?.occupied_slots  ?? 0), icon: <FaCarAlt />,       color: 'icon-indigo' },
-                    { label: 'Cancelled Bookings',val: loadingB ? '…' : cancelledCount,               icon: <FaBan />,          color: 'icon-red' },
+                    { label: 'Total Slots', val: loadingS ? '…' : totalSlots, icon: <FaParking />, color: 'icon-purple' },
+                    { label: 'Available', val: loadingS ? '…' : (stats?.available_slots ?? 0), icon: <FaCheckCircle />, color: 'icon-green' },
+                    { label: 'Occupied', val: loadingS ? '…' : (stats?.occupied_slots ?? 0), icon: <FaCarAlt />, color: 'icon-indigo' },
+                    { label: 'Cancelled Bookings', val: loadingB ? '…' : cancelledCount, icon: <FaBan />, color: 'icon-red' },
                   ].map(s => (
                     <div key={s.label} className="card-static p-4">
                       <div className={`w-9 h-9 rounded-xl ${s.color} flex items-center justify-center text-white text-xs shadow-sm mb-3`}>
@@ -557,9 +581,8 @@ const AdminPanel = ({ user, onLogout }) => {
                         return (
                           <div
                             key={slotId}
-                            className={`p-2 rounded-xl text-center text-[10px] font-bold transition-all duration-200 cursor-default ${
-                              occupied ? 'slot-occupied text-red-700' : 'slot-available text-emerald-700'
-                            }`}
+                            className={`p-2 rounded-xl text-center text-[10px] font-bold transition-all duration-200 cursor-default ${occupied ? 'slot-occupied text-red-700' : 'slot-available text-emerald-700'
+                              }`}
                             title={`Slot ${slotId}: ${occupied ? 'Occupied' : 'Available'}`}
                           >
                             <div className="text-[14px] mb-0.5">{occupied ? '🚗' : '🅿️'}</div>
